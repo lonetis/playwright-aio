@@ -2,6 +2,8 @@
 
 All-in-one Playwright Python runner with a web-based IDE, terminal, and browser viewer.
 
+![Playwright AIO Runner Screenshot](docs/screenshot.png)
+
 ## Quick Start
 
 Run from GitHub Container Registry:
