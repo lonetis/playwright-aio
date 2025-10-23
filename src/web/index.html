@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright AIO Runner</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/split.js@1.6.5/dist/split.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: #2d2d30;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #0e639c;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1177bb;
+        }
+
+        .btn-success {
+            background: #107c10;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #0f7d0f;
+        }
+
+        .btn-danger {
+            background: #c42b1c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d13438;
+        }
+
+        .btn-secondary {
+            background: #3e3e42;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4e4e52;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            background: #3e3e42;
+            overflow: hidden;
+        }
+
+        .split-left, .split-right {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #2d2d30;
+            padding: 8px 12px;
+            border-bottom: 1px solid #3e3e42;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #editor {
+            height: 100%;
+            width: 100%;
+        }
+
+        #output-terminal, #command-terminal {
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            min-height: 0;
+        }
+
+        #output-terminal .output-line {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        #vnc-container {
+            height: 100%;
+            width: 100%;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #vnc-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        .install-section {
+            padding: 10px;
+            background: #252526;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .install-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .install-form input {
+            flex: 1;
+            padding: 6px 10px;
+            background: #3c3c3c;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            color: #d4d4d4;
+            font-size: 13px;
+        }
+
+        .install-form input:focus {
+            outline: none;
+            border-color: #0e639c;
+        }
+
+        .command-section {
+            padding: 10px;
+            background: #252526;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .command-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .command-form input {
+            flex: 1;
+            padding: 6px 10px;
+            background: #3c3c3c;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            color: #d4d4d4;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        .command-form input:focus {
+            outline: none;
+            border-color: #0e639c;
+        }
+
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            padding: 5px;
+        }
+
+        #terminal-container .xterm {
+            height: 100%;
+            padding: 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-running {
+            background: #107c10;
+            color: white;
+        }
+
+        .status-idle {
+            background: #3e3e42;
+            color: #d4d4d4;
+        }
+
+        /* Split.js gutter styles */
+        .gutter {
+            background-color: #3e3e42;
+            background-repeat: no-repeat;
+            background-position: 50%;
+        }
+
+        .gutter.gutter-horizontal {
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+            cursor: col-resize;
+        }
+
+        .gutter.gutter-vertical {
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFCAMAAABl/6zIAAAABlBMVEUAAADMzMzIT8AyAAAAAXRSTlMAQObYZgAAABRJREFUeAFjYGRiYGJkZGBgYGAAAAQoABP+/7WxAAAAAElFTkSuQmCC');
+            cursor: row-resize;
+        }
+
+        .split {
+            box-sizing: border-box;
+        }
+
+        .split-horizontal {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .split-vertical {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Playwright AIO Runner</h1>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="downloadScript()">Download Script</button>
+                <button class="btn btn-success" id="runBtn" onclick="runScript()">Run Script</button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopScript()" disabled>Stop Script</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="split-left split">
+                <!-- Code Editor Panel -->
+                <div class="panel split">
+                    <div class="panel-header">
+                        Script Editor
+                        <span id="editor-status" class="status-badge status-idle">Ready</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="editor"></div>
+                    </div>
+                </div>
+
+                <!-- Output Terminal Panel -->
+                <div class="panel split">
+                    <div class="panel-header">
+                        Script Output
+                        <span id="output-status" class="status-badge status-idle">Idle</span>
+                    </div>
+                    <div class="install-section">
+                        <div class="install-form">
+                            <input type="text" id="packageInput" placeholder="Package name (e.g., requests, beautifulsoup4)">
+                            <button class="btn btn-primary" onclick="installPackage()">Install Package</button>
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <div id="output-terminal"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="split-right split">
+                <!-- Browser VNC Panel -->
+                <div class="panel split">
+                    <div class="panel-header">Browser View (noVNC)</div>
+                    <div class="panel-content">
+                        <div id="vnc-container">
+                            <iframe id="vnc-iframe" src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale&scaling_mode=local&reconnect=true&show_dot=true&quality=9&compression=2" scrolling="no" frameborder="0"></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Terminal Panel -->
+                <div class="panel split">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-content">
+                        <div id="terminal-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/split.js@1.6.5/dist/split.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script>
+        let editor;
+        let socket;
+        let autoSaveTimeout;
+        let term;
+        let fitAddon;
+
+        // Function to fit terminal and notify backend
+        function fitTerminal() {
+            if (fitAddon && term) {
+                fitAddon.fit();
+                const dimensions = {
+                    rows: term.rows,
+                    cols: term.cols
+                };
+                console.log('Terminal dimensions:', dimensions);
+                socket.emit('terminal_resize', dimensions);
+            }
+        }
+
+        // Initialize Split.js for resizable panes
+        window.addEventListener('DOMContentLoaded', () => {
+            // Horizontal split (left and right columns)
+            Split(['.split-left', '.split-right'], {
+                sizes: [50, 50],
+                minSize: 300,
+                gutterSize: 5,
+                cursor: 'col-resize',
+                direction: 'horizontal',
+                onDragEnd: () => {
+                    if (editor) editor.layout();
+                }
+            });
+
+            // Vertical split for left column (editor and output)
+            const leftPanels = document.querySelectorAll('.split-left > .panel');
+            Split(Array.from(leftPanels), {
+                sizes: [50, 50],
+                minSize: 150,
+                gutterSize: 5,
+                cursor: 'row-resize',
+                direction: 'vertical',
+                onDragEnd: () => {
+                    if (editor) editor.layout();
+                }
+            });
+
+            // Vertical split for right column (vnc and terminal)
+            const rightPanels = document.querySelectorAll('.split-right > .panel');
+            Split(Array.from(rightPanels), {
+                sizes: [60, 40],
+                minSize: 150,
+                gutterSize: 5,
+                cursor: 'row-resize',
+                direction: 'vertical',
+                onDragEnd: () => {
+                    setTimeout(fitTerminal, 50);
+                }
+            });
+
+            // Initialize xterm.js terminal
+            term = new Terminal({
+                cursorBlink: true,
+                fontSize: 14,
+                fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                theme: {
+                    background: '#1e1e1e',
+                    foreground: '#d4d4d4',
+                    cursor: '#d4d4d4',
+                    selection: '#264f78'
+                },
+                scrollback: 10000
+            });
+
+            fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            term.open(document.getElementById('terminal-container'));
+
+            // Initial fit
+            setTimeout(() => {
+                fitTerminal();
+            }, 100);
+
+            // Handle terminal input
+            term.onData((data) => {
+                socket.emit('terminal_input', { input: data });
+            });
+
+            // Fit terminal on window resize
+            window.addEventListener('resize', () => {
+                setTimeout(fitTerminal, 50);
+            });
+
+            // Start terminal session after a brief delay
+            setTimeout(() => {
+                socket.emit('terminal_start');
+                // Resize again after terminal starts
+                setTimeout(fitTerminal, 200);
+            }, 300);
+        });
+
+        // Initialize Monaco Editor
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: '',
+                language: 'python',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+            });
+
+            loadScript();
+
+            // Auto-save on content change
+            editor.onDidChangeModelContent(() => {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(() => {
+                    saveScript(true); // true = silent auto-save
+                }, 2000); // Save after 2 seconds of inactivity
+            });
+        });
+
+        // Initialize Socket.IO
+        socket = io();
+
+        socket.on('connect', () => {
+            console.log('Socket.IO connected');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket.IO disconnected');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
+        });
+
+        socket.on('script_started', (data) => {
+            console.log('Script started:', data);
+            updateOutputStatus('Running', true);
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+        });
+
+        socket.on('script_output', (data) => {
+            console.log('Script output:', data);
+            appendOutput(data.output);
+        });
+
+        socket.on('script_finished', (data) => {
+            console.log('Script finished:', data);
+            let message = `\n[Script finished with exit code ${data.returncode}]`;
+            if (data.returncode === -15 || data.returncode === -9) {
+                message = `\n[Script terminated by user]`;
+            }
+            appendOutput(message + '\n');
+            updateOutputStatus('Idle', false);
+            document.getElementById('runBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        });
+
+        socket.on('install_output', (data) => {
+            console.log('Install output:', data);
+            appendOutput(data.output);
+        });
+
+        socket.on('install_finished', (data) => {
+            console.log('Install finished:', data);
+            appendOutput(`\n[Installation finished with exit code ${data.returncode}]\n`);
+        });
+
+        socket.on('terminal_output', (data) => {
+            if (term) {
+                term.write(data.output);
+            }
+        });
+
+        socket.on('terminal_ready', () => {
+            console.log('Terminal ready');
+            // Send correct terminal size immediately
+            setTimeout(fitTerminal, 50);
+        });
+
+        function loadScript() {
+            fetch('/api/script')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        editor.setValue(data.content);
+                    } else {
+                        alert('Error loading script: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error loading script: ' + error);
+                });
+        }
+
+        function saveScript(silent = false) {
+            const content = editor.getValue();
+            fetch('/api/script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (silent) {
+                            updateEditorStatus('Auto-saved');
+                            setTimeout(() => updateEditorStatus('Ready'), 1000);
+                        } else {
+                            updateEditorStatus('Saved');
+                            setTimeout(() => updateEditorStatus('Ready'), 2000);
+                        }
+                    } else {
+                        if (!silent) {
+                            alert('Error saving script: ' + data.error);
+                        }
+                    }
+                })
+                .catch(error => {
+                    if (!silent) {
+                        alert('Error saving script: ' + error);
+                    }
+                });
+        }
+
+        function downloadScript() {
+            window.location.href = '/api/script/download';
+        }
+
+        function runScript() {
+            clearOutput();
+            fetch('/api/run', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Error running script: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error running script: ' + error);
+                });
+        }
+
+        function stopScript() {
+            fetch('/api/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        appendOutput('\n[Script stopped by user]\n');
+                    } else {
+                        alert('Error stopping script: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error stopping script: ' + error);
+                });
+        }
+
+        function installPackage() {
+            const packageInput = document.getElementById('packageInput');
+            const packageName = packageInput.value.trim();
+
+            if (!packageName) {
+                alert('Please enter a package name');
+                return;
+            }
+
+            appendOutput(`\n[Installing package: ${packageName}]\n`);
+
+            fetch('/api/install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ package: packageName })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        packageInput.value = '';
+                    } else {
+                        alert('Error installing package: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error installing package: ' + error);
+                });
+        }
+
+        function appendOutput(text) {
+            const terminal = document.getElementById('output-terminal');
+            const line = document.createElement('div');
+            line.className = 'output-line';
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output-terminal').innerHTML = '';
+        }
+
+        function updateOutputStatus(text, isRunning) {
+            const status = document.getElementById('output-status');
+            status.textContent = text;
+            status.className = 'status-badge ' + (isRunning ? 'status-running' : 'status-idle');
+        }
+
+        function updateEditorStatus(text) {
+            const status = document.getElementById('editor-status');
+            status.textContent = text;
+        }
+
+        // Allow Enter key to install packages
+        document.getElementById('packageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                installPackage();
+            }
+        });
+    </script>
+</body>
+</html>
